@@ -111,9 +111,14 @@ bbigStep (And b1 b2,s )
 bbigStep (Or b1 b2,s )  =
    | bbigStep (b1,s) == False && bbigStep (b2,s) == False = False
    | otherwise = True
---bbigStep (Leq e1 e2,s) =
---bbigStep (Igual e1 e2,s) = -- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
+bbigStep (Leq e1 e2,s) =
+   | ebigStep (e1,s) <= ebigStep (e2,s) = True
+   | otherwise = False
+bbigStep (Igual e1 e2,s) = -- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
+   | ebigStep (e1,s) == ebigStep (e2,s) = True
+   | otherwise = False
 
+   
 cbigStep :: (C,Memoria) -> (C,Memoria)
 cbigStep (Skip,s) = (Skip,s)
 -- cbigStep (If b c1 c2,s)  
