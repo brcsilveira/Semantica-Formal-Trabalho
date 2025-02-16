@@ -96,9 +96,6 @@ ebigStep (Num n,s) = n
 ebigStep (Soma e1 e2,s)  = ebigStep (e1,s) + ebigStep (e2,s)
 ebigStep (Sub e1 e2,s) = ebigStep (e1,s) - ebigStep (e2,s)
 ebigStep (Mult e1 e2,s)  = ebigStep (e1,s) * ebigStep (e2,s)
--- ebigStep(Div e1 e2,s) = 
---    | ebigStep (e2,s) == 0 = error "Foi detectada uma divisão por zero"
---    | otherwise = ebigStep (e1,s) `div` ebigStep (e2,s)
 ebigStep (Div e1 e2, s)
    | ebigStep (e2, s) == 0 = error "Foi detectada uma divisão por zero"
    | otherwise = ebigStep (e1, s) `div` ebigStep (e2, s)
