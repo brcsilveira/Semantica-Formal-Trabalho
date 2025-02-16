@@ -96,9 +96,13 @@ ebigStep (Num n,s) = n
 ebigStep (Soma e1 e2,s)  = ebigStep (e1,s) + ebigStep (e2,s)
 ebigStep (Sub e1 e2,s) = ebigStep (e1,s) - ebigStep (e2,s)
 ebigStep (Mult e1 e2,s)  = ebigStep (e1,s) * ebigStep (e2,s)
-ebigStep(Div e1 e2,s) = 
-   | ebigStep (e2,s) == 0 = error "Foi detectada uma divisão por zero"
-   | otherwise = ebigStep (e1,s) `div` ebigStep (e2,s)
+-- ebigStep(Div e1 e2,s) = 
+--    | ebigStep (e2,s) == 0 = error "Foi detectada uma divisão por zero"
+--    | otherwise = ebigStep (e1,s) `div` ebigStep (e2,s)
+ebigStep (Div e1 e2, s)
+   | ebigStep (e2, s) == 0 = error "Foi detectada uma divisão por zero"
+   | otherwise = ebigStep (e1, s) `div` ebigStep (e2, s)
+
 
 
 bbigStep :: (B,Memoria) -> Bool
@@ -110,19 +114,22 @@ bbigStep (Not b,s)
 bbigStep (And b1 b2,s )
    | bbigStep (b1,s) == True && bbigStep (b2,s) == True = True
    | otherwise = False
-bbigStep (Or b1 b2,s )  =
+bbigStep (Or b1 b2,s )  
    | bbigStep (b1,s) == False && bbigStep (b2,s) == False = False
    | otherwise = True
-bbigStep (Leq e1 e2,s) =
+bbigStep (Leq e1 e2,s) 
    | ebigStep (e1,s) <= ebigStep (e2,s) = True
    | otherwise = False
-bbigStep (Igual e1 e2,s) = -- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
+bbigStep (Igual e1 e2,s)  -- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
    | ebigStep (e1,s) == ebigStep (e2,s) = True
    | otherwise = False
 
    
 cbigStep :: (C,Memoria) -> (C,Memoria)
 cbigStep (Skip,s) = (Skip,s)
+cbigStep (While b c,s)
+   | bbigStep (b,s) == True = let (_,s') = cbigStep (c,s) in cbigStep (While b c,s')
+   | otherwise = (Skip,s)
 cbigStep (If b c1 c2,s)
    | bbigStep (b,s) == True = cbigStep (c1,s)
    | otherwise = cbigStep (c2,s)  
@@ -139,8 +146,8 @@ cbigStep (RepeatUntil c b,s)   --- Repeat C until B: executa C até que B seja v
    | bbigStep (b,s) == True = (Skip,s)
    | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (RepeatUntil c b,s') -- Conferir com o professor
 cbigStep (ExecN c e,s)      ---- ExecN C n: executa o comando C n vezes
-   | e == 0 = (Skip,s)
-   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (e-1),s') -- Conferir com o professor
+   | ebigStep (e,s) == 0 = (Skip,s)
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (Num (ebigStep (e,s) - 1)),s') -- Conferir com o professor
 cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo delas
    | procuraVar s x == procuraVar s y = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (procuraVar s y)) y (procuraVar s x))
