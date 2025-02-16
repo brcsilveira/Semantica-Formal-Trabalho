@@ -29,6 +29,7 @@ data C = While B C
     | Assert B C --- Assert B C: caso B seja verdadeiro, executa o comando C
     | Swap E E --- recebe duas variáveis e troca o conteúdo delas
     | DAtrrib E E E E -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
+    | DoWhile C B  --- DoWhile C B: executa C enquanto B for verdadeiro ------ NÃO ESTAVA AQUI, FOI ADICIONADO POR NÓS PORQUE PEDIA NO PROGRAMA DE EXEMPLO
    deriving(Eq,Show)                
 
 
@@ -132,25 +133,31 @@ cbigStep (If b c1 c2,s)
    | otherwise = cbigStep (c2,s)  
 cbigStep (Seq c1 c2,s)
    | c1 == Skip = cbigStep (c2,s)
-   | otherwise = let (_,s') = cbigStep (c1,s) in cbigStep (c2,s') -- Conferir com o professor
+   | otherwise = let (_,s') = cbigStep (c1,s) in cbigStep (c2,s') 
 cbigStep (Atrib (Var x) e,s)
    | procuraVar s x == ebigStep (e,s) = (Skip,s)
    | otherwise = (Skip,mudaVar s x (ebigStep (e,s))) 
 cbigStep (Twice c,s)   ---- Executa o comando C 2 vezes
    | c == Skip = (Skip,s)
-   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (c,s') -- Conferir com o professor
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (c,s') 
 cbigStep (RepeatUntil c b,s)   --- Repeat C until B: executa C até que B seja verdadeiro
    | bbigStep (b,s) == True = (Skip,s)
-   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (RepeatUntil c b,s') -- Conferir com o professor
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (RepeatUntil c b,s') 
 cbigStep (ExecN c e,s)      ---- ExecN C n: executa o comando C n vezes
    | ebigStep (e,s) == 0 = (Skip,s)
-   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (Num (ebigStep (e,s) - 1)),s') -- Conferir com o professor
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (Num (ebigStep (e,s) - 1)),s') 
+cbigStep (Assert b c,s)   --- Assert B C: caso B seja verdadeiro, executa o comando C
+   | bbigStep (b,s) == True = cbigStep (c,s)
+   | otherwise = (Skip,s)
 cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo delas
    | procuraVar s x == procuraVar s y = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (procuraVar s y)) y (procuraVar s x))
 cbigStep (DAtrrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
    | procuraVar s x == ebigStep (e1,s) && procuraVar s y == ebigStep (e2,s) = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (ebigStep (e1,s))) y (ebigStep (e2,s)))
+cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro
+   | bbigStep (b,s) == True = let (_,s') = cbigStep (c,s) in cbigStep (DoWhile c b,s')
+   | otherwise = (Skip,s)
 
 --------------------------------------
 ---
