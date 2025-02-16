@@ -96,7 +96,9 @@ ebigStep (Num n,s) = n
 ebigStep (Soma e1 e2,s)  = ebigStep (e1,s) + ebigStep (e2,s)
 ebigStep (Sub e1 e2,s) = ebigStep (e1,s) - ebigStep (e2,s)
 ebigStep (Mult e1 e2,s)  = ebigStep (e1,s) * ebigStep (e2,s)
-ebigStep(Div e1 e2,s) = ebigStep (e1,s) / ebigStep (e2,s)
+ebigStep(Div e1 e2,s) = 
+   | ebigStep (e2,s) == 0 = error "Foi detectada uma divisão por zero"
+   | otherwise = ebigStep (e1,s) `div` ebigStep (e2,s)
 
 
 bbigStep :: (B,Memoria) -> Bool
@@ -121,14 +123,30 @@ bbigStep (Igual e1 e2,s) = -- recebe duas expressões aritméticas e devolve um 
    
 cbigStep :: (C,Memoria) -> (C,Memoria)
 cbigStep (Skip,s) = (Skip,s)
--- cbigStep (If b c1 c2,s)  
---cbigStep (Seq c1 c2,s)  
---cbigStep (Atrib (Var x) e,s) 
--- cbigStep (Twice c,s)   ---- Executa o comando C 2 vezes
-----cbigStep (RepeatUntil c b,s)   --- Repeat C until B: executa C até que B seja verdadeiro
---cbigStep (ExecN c e,s)      ---- ExecN C n: executa o comando C n vezes
---cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo delas
---cbigStep (DAtrrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
+cbigStep (If b c1 c2,s)
+   | bbigStep (b,s) == True = cbigStep (c1,s)
+   | otherwise = cbigStep (c2,s)  
+cbigStep (Seq c1 c2,s)
+   | c1 == Skip = cbigStep (c2,s)
+   | otherwise = let (_,s') = cbigStep (c1,s) in cbigStep (c2,s') -- Conferir com o professor
+cbigStep (Atrib (Var x) e,s)
+   | procuraVar s x == ebigStep (e,s) = (Skip,s)
+   | otherwise = (Skip,mudaVar s x (ebigStep (e,s))) 
+cbigStep (Twice c,s)   ---- Executa o comando C 2 vezes
+   | c == Skip = (Skip,s)
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (c,s') -- Conferir com o professor
+cbigStep (RepeatUntil c b,s)   --- Repeat C until B: executa C até que B seja verdadeiro
+   | bbigStep (b,s) == True = (Skip,s)
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (RepeatUntil c b,s') -- Conferir com o professor
+cbigStep (ExecN c e,s)      ---- ExecN C n: executa o comando C n vezes
+   | e == 0 = (Skip,s)
+   | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (e-1),s') -- Conferir com o professor
+cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo delas
+   | procuraVar s x == procuraVar s y = (Skip,s)
+   | otherwise = (Skip,mudaVar (mudaVar s x (procuraVar s y)) y (procuraVar s x))
+cbigStep (DAtrrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
+   | procuraVar s x == ebigStep (e1,s) && procuraVar s y == ebigStep (e2,s) = (Skip,s)
+   | otherwise = (Skip,mudaVar (mudaVar s x (ebigStep (e1,s))) y (ebigStep (e2,s)))
 
 --------------------------------------
 ---
