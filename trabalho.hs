@@ -169,6 +169,24 @@ cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro
 --- * Do While
 -------------------------------------
 
+--- Loop (While) - Contador decrescente
+progtest1 :: C
+progtest1 = While (Not (Igual (Var "x") (Num 0))) 
+                  (Atrib (Var "x") (Sub (Var "x") (Num 1)))
+
+--- Dupla Atribuição - Troca de valores entre a e b
+progtest2 :: C
+progtest2 = Seq (Atrib (Var "temp") (Var "x")) 
+                (Seq (Atrib (Var "x") (Var "y"))
+                     (Atrib (Var "y") (Var "temp")))
+
+--- Do While - Incrementa x pelo menos uma vez antes de testar a condição
+progtest3 :: C
+progtest3 = DoWhile (Atrib (Var "x") (Soma (Var "x") (Num 1)))
+                    (Leq (Var "x") (Num 10))
+
+-------------------------------------
+
 exSigma2 :: Memoria
 exSigma2 = [("x",3), ("y",0), ("z",0)]
 
