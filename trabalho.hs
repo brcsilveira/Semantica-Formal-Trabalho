@@ -28,7 +28,7 @@ data C = While B C
     | ExecN C E      ---- ExecN C n: executa o comando C n vezes
     | Assert B C --- Assert B C: caso B seja verdadeiro, executa o comando C
     | Swap E E --- recebe duas variáveis e troca o conteúdo delas
-    | DAtrrib E E E E -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
+    | DAtrib E E E E -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
     | DoWhile C B  --- DoWhile C B: executa C enquanto B for verdadeiro ------ NÃO ESTAVA AQUI, FOI ADICIONADO POR NÓS PORQUE PEDIA NO PROGRAMA DE EXEMPLO
    deriving(Eq,Show)                
 
@@ -109,10 +109,10 @@ bbigStep (FALSE,s) = False
 bbigStep (Not b,s) 
    | bbigStep (b,s) == True     = False
    | otherwise                  = True 
-bbigStep (And b1 b2,s )
+bbigStep (And b1 b2,s)
    | bbigStep (b1,s) == True && bbigStep (b2,s) == True = True
    | otherwise = False
-bbigStep (Or b1 b2,s )  
+bbigStep (Or b1 b2,s)  
    | bbigStep (b1,s) == False && bbigStep (b2,s) == False = False
    | otherwise = True
 bbigStep (Leq e1 e2,s) 
@@ -125,7 +125,7 @@ bbigStep (Igual e1 e2,s)  -- recebe duas expressões aritméticas e devolve um v
    
 cbigStep :: (C,Memoria) -> (C,Memoria)
 cbigStep (Skip,s) = (Skip,s)
-cbigStep (While b c,s)
+cbigStep (While b c,s) -- ESSE NÃO ESTAVA COMENTADO, MAS VERIFICAMOS COM BASE NO ESCOPO QUE ELE ESTAVA FALTANDO
    | bbigStep (b,s) == True = let (_,s') = cbigStep (c,s) in cbigStep (While b c,s')
    | otherwise = (Skip,s)
 cbigStep (If b c1 c2,s)
@@ -146,16 +146,16 @@ cbigStep (RepeatUntil c b,s)   --- Repeat C until B: executa C até que B seja v
 cbigStep (ExecN c e,s)      ---- ExecN C n: executa o comando C n vezes
    | ebigStep (e,s) == 0 = (Skip,s)
    | otherwise = let (_,s') = cbigStep (c,s) in cbigStep (ExecN c (Num (ebigStep (e,s) - 1)),s') 
-cbigStep (Assert b c,s)   --- Assert B C: caso B seja verdadeiro, executa o comando C
+cbigStep (Assert b c,s)   --- Assert B C: caso B seja verdadeiro, executa o comando C *** ESSE NÃO ESTAVA COMENTADO, MAS VERIFICAMOS COM BASE NO ESCOPO QUE ELE ESTAVA FALTANDO ***
    | bbigStep (b,s) == True = cbigStep (c,s)
    | otherwise = (Skip,s)
 cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo delas
    | procuraVar s x == procuraVar s y = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (procuraVar s y)) y (procuraVar s x))
-cbigStep (DAtrrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
+cbigStep (DAtrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
    | procuraVar s x == ebigStep (e1,s) && procuraVar s y == ebigStep (e2,s) = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (ebigStep (e1,s))) y (ebigStep (e2,s)))
-cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro
+cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro *** IMPLEMENTAMOS POIS FOI PEDIDO PARA PROGRAMA DE EXEMPLO ***
    | bbigStep (b,s) == True = let (_,s') = cbigStep (c,s) in cbigStep (DoWhile c b,s')
    | otherwise = (Skip,s)
 
@@ -185,11 +185,26 @@ progtest3 :: C
 progtest3 = DoWhile (Atrib (Var "x") (Soma (Var "x") (Num 1)))
                     (Leq (Var "x") (Num 10))
 
+progtest4 :: C
+progtest4 = Seq 
+    (DAtrib (Var "y") (Var "temp") (Num 1) (Var "x"))  -- Inicializa y = 1, temp = x
+    (RepeatUntil
+        (Seq 
+            (DAtrib (Var "y") (Var "temp") (Mult (Var "y") (Var "x")) (Sub (Var "x") (Num 1))) 
+            (Atrib (Var "x") (Sub (Var "x") (Num 1)))  -- Adicionado para que `Seq` tenha dois argumentos válidos
+        ) 
+        (Igual (Var "x") (Num 1))
+    )
+
+
+
 -------------------------------------
 
 exSigma2 :: Memoria
 exSigma2 = [("x",3), ("y",0), ("z",0)]
 
+exSigma3 :: Memoria
+exSigma3 = [("x",5), ("y",0), ("temp",0)]
 
 ---
 --- O progExp1 é um programa que usa apenas a semântica das expressões aritméticas. Esse
