@@ -176,7 +176,7 @@ progtest1 = While (Not (Igual (Var "x") (Num 0)))
                   (Atrib (Var "x") (Sub (Var "x") (Num 1)))
 
 
-progtest2 :: C
+progtest2 :: C -- Esse nós fizemos mais pra exercitar de o comando Atrib estava funcionando corretamente
 progtest2 = Seq (Atrib (Var "temp") (Var "x")) 
                 (Seq (Atrib (Var "x") (Var "y"))
                      (Atrib (Var "y") (Var "temp")))
