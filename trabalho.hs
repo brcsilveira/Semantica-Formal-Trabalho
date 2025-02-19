@@ -47,8 +47,8 @@ data C = While B C
 
 type Memoria = [(String,Int)]
 
-exSigma :: Memoria
-exSigma = [ ("x", 10), ("temp",0), ("y",0)]
+-- exSigma :: Memoria
+-- exSigma = [ ("x", 10), ("temp",0), ("y",0)]
 
 
 --- A função procuraVar recebe uma memória, o nome de uma variável e retorna o conteúdo
@@ -155,9 +155,10 @@ cbigStep (Swap (Var x) (Var y),s) --- recebe duas variáveis e troca o conteúdo
 cbigStep (DAtrib (Var x) (Var y) e1 e2,s) -- Dupla atribuição: recebe duas variáveis x e y e duas expressões "e1" e "e2". Faz x:=e1 e y:=e2.
    | procuraVar s x == ebigStep (e1,s) && procuraVar s y == ebigStep (e2,s) = (Skip,s)
    | otherwise = (Skip,mudaVar (mudaVar s x (ebigStep (e1,s))) y (ebigStep (e2,s)))
-cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro *** IMPLEMENTAMOS POIS FOI PEDIDO PARA PROGRAMA DE EXEMPLO ***
-   | bbigStep (b,s) == True = let (_,s') = cbigStep (c,s) in cbigStep (DoWhile c b,s')
-   | otherwise = (Skip,s)
+--- DoWhile C B: executa C enquanto B for verdadeiro *** IMPLEMENTAMOS POIS FOI PEDIDO PARA PROGRAMA DE EXEMPLO ***
+cbigStep (DoWhile c b, s) = 
+   let (_, s') = cbigStep (c, s) 
+   in cbigStep (If b (DoWhile c b) Skip, s')
 
 --------------------------------------
 ---
@@ -169,42 +170,48 @@ cbigStep (DoWhile c b,s)  --- DoWhile C B: executa C enquanto B for verdadeiro *
 --- * Do While
 -------------------------------------
 
---- Loop (While) - Contador decrescente
+
 progtest1 :: C
 progtest1 = While (Not (Igual (Var "x") (Num 0))) 
                   (Atrib (Var "x") (Sub (Var "x") (Num 1)))
 
---- Dupla Atribuição - Troca de valores entre a e b
+
 progtest2 :: C
 progtest2 = Seq (Atrib (Var "temp") (Var "x")) 
                 (Seq (Atrib (Var "x") (Var "y"))
                      (Atrib (Var "y") (Var "temp")))
 
---- Do While - Incrementa x pelo menos uma vez antes de testar a condição
+
 progtest3 :: C
 progtest3 = DoWhile (Atrib (Var "x") (Soma (Var "x") (Num 1)))
                     (Leq (Var "x") (Num 10))
 
 progtest4 :: C
 progtest4 = Seq 
-    (DAtrib (Var "y") (Var "temp") (Num 1) (Var "x"))  -- Inicializa y = 1, temp = x
+    (DAtrib (Var "y") (Var "temp") (Num 1) (Var "x"))
     (RepeatUntil
         (Seq 
             (DAtrib (Var "y") (Var "temp") (Mult (Var "y") (Var "x")) (Sub (Var "x") (Num 1))) 
-            (Atrib (Var "x") (Sub (Var "x") (Num 1)))  -- Adicionado para que `Seq` tenha dois argumentos válidos
+            (Atrib (Var "x") (Sub (Var "x") (Num 1))) 
         ) 
         (Igual (Var "x") (Num 1))
     )
 
-
-
 -------------------------------------
+-- Exemplos de memória para teste
+
+
+exSigma :: Memoria
+exSigma = [("x", 10), ("temp",0), ("y",0)]
 
 exSigma2 :: Memoria
 exSigma2 = [("x",3), ("y",0), ("z",0)]
 
 exSigma3 :: Memoria
 exSigma3 = [("x",5), ("y",0), ("temp",0)]
+
+exSigma4 :: Memoria
+exSigma4 = [("x",11)]
 
 ---
 --- O progExp1 é um programa que usa apenas a semântica das expressões aritméticas. Esse
