@@ -5,6 +5,7 @@ data E = Num Int
       |Soma E E
       |Sub E E
       |Mult E E
+      |Mod E E
    deriving(Eq,Show)
 
 data B = TRUE
@@ -114,16 +115,16 @@ smallStepB (Not b,s)
                          in (Not bl, sl)
 smallStepB (Not FALSE,s) = (TRUE,s)
 smallStepB (Not TRUE,s) = (FALSE,s)
-smallStepB (And FALSE _,s) = (FALSE,s)
 smallStepB (And TRUE b2,s) = (b2,s)
-smallStepB (And b1 b2,s )  = 
-    | not (isFinalB b1) = let (bl, sl) = smallStepB (b1, s)
+smallStepB (And FALSE _,s) = (FALSE,s)
+smallStepB (And b1 b2,s) 
+    | not (isFinalB b1) = let (bl, sl) = smallStepB (b1,s)
                           in (And bl b2, sl)
-    | otherwise = let (br, sr) = smallStepB (b2, s)
-                  in (And b1 br, sr)
-smallStepB (Or FALSE b2,s) = (b2,s)
+    | otherwise = let (br, sr) = smallStepB (b2,s)
+                  in (And b1 br, sr) 
 smallStepB (Or TRUE _,s) = (TRUE,s)
-smallStepB (Or b1 b2,s )  =
+smallStepB (Or FALSE b2,s) = (b2,s)
+smallStepB (Or b1 b2,s) 
     | not (isFinalB b1) = let (bl, sl) = smallStepB (b1,s)
                           in (Or bl b2, sl)
     | otherwise = let (br, sr) = smallStepB (b2,s)
@@ -140,17 +141,40 @@ smallStepB (Igual (Num n) e, s) = let (el, sl) = smallStepE (e, s)
 smallStepB (Igual e1 e2, s) = let (el, sl) = smallStepE (e1, s)
                               in (Igual el e2, sl)
 
--- smallStepC :: (C,Memoria) -> (C,Memoria)
--- smallStepC (If b c1 c2,s)  
---smallStepC (Seq c1 c2,s)  
---smallStepC (Atrib (Var x) e,s) 
---smallStepC (While b c, s) 
- -- | Twice C   ---- Executa o comando C 2 vezes
- --   | RepeatUntil C B --- Repeat C until B: executa C até que B seja verdadeiro
- --   | ExecN C E      ---- ExecN C n: executa o comando C n vezes
- --   | Assert B C --- Assert B C: caso B seja verdadeiro, executa o comando C
- --   | Swap E E --- recebe duas variáveis e troca o conteúdo delas
-  ---  | DAtrrib E E E E -- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4.
+
+smallStepC :: (C,Memoria) -> (C,Memoria)
+smallStepC (If b c1 c2,s) 
+    | not (isFinalB b) = let (bl, sl) = smallStepB (b,s)
+                         in (If bl c1 c2, sl)
+smallStepC (If TRUE c1 c2,s) = (c1,s)
+smallStepC (If FALSE c1 c2,s) = (c2,s)
+smallStepC (Seq c1 c2,s) 
+    | not (isFinalC c1) = let (cl, sl) = smallStepC (c1,s)
+                          in (Seq cl c2, sl)
+smallStepC (Seq Skip c2,s) = (c2,s) 
+smallStepC (Atrib (Var x) e,s)
+    | not (isFinalE e) = let (el, sl) = smallStepE (e,s)
+                         in (Atrib (Var x) el, sl)
+smallStepC (Atrib (Var x) (Num n),s) = (Skip, mudaVar s x n)
+smallStepC (While b c, s) = (If b (Seq c (While b c)) Skip, s)
+---- Twice: Executa o comando C 2 vezes:
+smallStepC (Twice c, s) = (Seq c c, s)
+--- Repeat C until B: executa C até que B seja verdadeiro
+smallStepC (RepeatUntil c b, s) = (Seq c (If b Skip (RepeatUntil c b)), s) 
+---- ExecN C n: executa o comando C n vezes
+smallStepC (ExecN c e, s) = (Seq c (If (Igual e (Num 1)) Skip (ExecN c (Sub e (Num 1)))), s)
+---- Assert B C: caso B seja verdadeiro, executa o comando C    
+smallStepC (Assert b c, s) = (If b c Skip, s)
+---- Swap E E --- recebe duas variáveis e troca o conteúdo delas
+smallStepC (Swap (Var x) (Var y), s) = (DAtrrib (Var x) (Var y) (Var y) (Var x), s)
+---- Dupla atribuição: recebe duas variáveis "e1" e "e2" e duas expressões "e3" e "e4". Faz e1:=e3 e e2:=e4
+smallStepC (DAtrrib (Var x) (Var y) e1 e2, s)
+    | not (isFinalE e1) = let (el1, sl1) = smallStepE (e1,s)
+                          in (DAtrrib (Var x) (Var y) el1 e2, sl1)
+smallStepC (DAtrrib (Var x) (Var y) (Num n1) e2, s)
+    | not (isFinalE e2) = let (el2, sl2) = smallStepE (e2,s)
+                          in (DAtrrib (Var x) (Var y) (Num n1) el2, sl2)
+smallStepC (DAtrrib (Var x) (Var y) (Num n1) (Num n2), s) = (Skip, mudaVar (mudaVar s x n1) y n2)
 
 
 ----------------------
@@ -177,8 +201,8 @@ isFinalB _       = False
 
 -- Descomentar quanto a função smallStepB estiver implementada:
 
---interpretadorB :: (B,Memoria) -> (B, Memoria)
---interpretadorB (b,s) = if (isFinalB b) then (b,s) else interpretadorB (smallStepB (b,s))
+interpretadorB :: (B,Memoria) -> (B, Memoria)
+interpretadorB (b,s) = if (isFinalB b) then (b,s) else interpretadorB (smallStepB (b,s))
 
 
 -- Interpretador da Linguagem Imperativa
@@ -189,8 +213,8 @@ isFinalC _       = False
 
 -- Descomentar quando a função smallStepC estiver implementada:
 
---interpretadorC :: (C,Memoria) -> (C, Memoria)
---interpretadorC (c,s) = if (isFinalC c) then (c,s) else interpretadorC (smallStepC (c,s))
+interpretadorC :: (C,Memoria) -> (C, Memoria)
+interpretadorC (c,s) = if (isFinalC c) then (c,s) else interpretadorC (smallStepC (c,s))
 
 
 --------------------------------------
@@ -198,11 +222,11 @@ isFinalC _       = False
 --- Exemplos de programas para teste
 ---
 --- O ALUNO DEVE IMPLEMENTAR EXEMPLOS DE PROGRAMAS QUE USEM:
---  * RepeatUntil C B --- Repeat C until B: executa C até que B seja verdadeiro
+--  * RepeatUntil C B --- Repeat C until B: executa C até que B seja verdadeiro: FEITO
  -- * ExecN C E      ---- ExecN C n: executa o comando C n vezes
  -- * Assert B C --- Assert B C: caso B seja verdadeiro, executa o comando C
  -- * Swap E E --- recebe duas variáveis e troca o conteúdo delas
- -- *  DAtrrib E E E E
+ -- *  DAtrrib E E E E: FEITO
 
 exSigma2 :: Memoria
 exSigma2 = [("x",3), ("y",0), ("z",0)]
@@ -260,3 +284,29 @@ fatorial = (Seq (Atrib (Var "y") (Num 1))
                 (While (Not (Igual (Var "x") (Num 1)))
                        (Seq (Atrib (Var "y") (Mult (Var "y") (Var "x")))
                             (Atrib (Var "x") (Sub (Var "x") (Num 1))))))
+
+-- EXEMPLOS DE PROGRAMAS FEITOS POR MIM:
+
+-- Usando RepeatUntil e DAtrrib
+exRepeatUntilEDAtrrib :: C
+exRepeatUntilEDAtrrib = Seq 
+    (DAtrrib (Var "y") (Var "temp") (Num 1) (Var "x"))
+    (RepeatUntil
+        (Seq 
+            (DAtrrib (Var "y") (Var "temp") (Mult (Var "y") (Var "x")) (Sub (Var "x") (Num 1))) 
+            (Atrib (Var "x") (Sub (Var "x") (Num 1))) 
+        ) 
+        (Igual (Var "x") (Num 1))
+    )
+
+-- Usando ExecN, Assert e Swap
+exExecNAssertSwap :: C
+exExecNAssertSwap = Seq
+    (ExecN 
+        (Seq 
+            (Swap (Var "x") (Var "y")) 
+            (Atrib (Var "x") (Soma (Var "x") (Var "y")))
+        ) 
+        (Num 3)
+    )
+    (Assert (Leq (Var "x") (Num 100)) (Atrib (Var "temp") (Soma (Var "x") (Var "y"))))
