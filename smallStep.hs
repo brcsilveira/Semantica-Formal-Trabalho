@@ -129,7 +129,7 @@ smallStepB (Or b1 b2,s)
                           in (Or bl b2, sl)
     | otherwise = let (br, sr) = smallStepB (b2,s)
                   in (Or b1 br, sr)
-smallStepB (Leq (Num n1) (Num n2), s) = if n1 <= n2 then (TRUE,s) else (FALSE,s) --OBSERVAR DPS
+smallStepB (Leq (Num n1) (Num n2), s) = if n1 <= n2 then (TRUE,s) else (FALSE,s)
 smallStepB (Leq (Num n) e, s) = let (el, sl) = smallStepE (e, s)
                                 in (Leq (Num n) el, sl)
 smallStepB (Leq e1 e2, s) = let (el, sl) = smallStepE (e1, s)
@@ -137,7 +137,6 @@ smallStepB (Leq e1 e2, s) = let (el, sl) = smallStepE (e1, s)
 smallStepB (Igual (Num n1) (Num n2), s) = if n1 == n2 then (TRUE,s) else (FALSE,s)
 smallStepB (Igual (Num n) e, s) = let (el, sl) = smallStepE (e, s)
                                   in (Igual (Num n) el, sl)
--- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
 smallStepB (Igual e1 e2, s) = let (el, sl) = smallStepE (e1, s)
                               in (Igual el e2, sl)
 
@@ -310,3 +309,8 @@ exExecNAssertSwap = Seq
         (Num 3)
     )
     (Assert (Leq (Var "x") (Num 100)) (Atrib (Var "temp") (Soma (Var "x") (Var "y"))))
+
+exSigma3 :: Memoria
+exSigma3 = [ ("x", 2), ("temp",0), ("y",3)]
+exSigma4 :: Memoria
+exSigma4 = [ ("x", 60), ("temp",0), ("y",30)]
